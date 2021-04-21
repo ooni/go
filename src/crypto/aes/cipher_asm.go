@@ -9,7 +9,7 @@ package aes
 import (
 	"crypto/cipher"
 	"crypto/internal/subtle"
-	"internal/cpu"
+	"internal/cpuproxy"
 )
 
 // defined in asm_*.s
@@ -27,8 +27,8 @@ type aesCipherAsm struct {
 	aesCipher
 }
 
-var supportsAES = cpu.X86.HasAES || cpu.ARM64.HasAES
-var supportsGFMUL = cpu.X86.HasPCLMULQDQ || cpu.ARM64.HasPMULL
+var supportsAES = cpuproxy.HasAES()
+var supportsGFMUL = cpuproxy.HasGFMUL()
 
 func newCipher(key []byte) (cipher.Block, error) {
 	if !supportsAES {
