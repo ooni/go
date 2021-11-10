@@ -99,7 +99,15 @@ func (z *Reader) init(r io.ReaderAt, size int64) error {
 		return err
 	}
 	z.r = r
-	z.File = make([]*File, 0, end.directoryRecords)
+	// Since the number of directory records is not validated, it is not
+	// safe to preallocate z.File without first checking that the specified
+	// number of files is reasonable, since a malformed archive may
+	// indicate it contains up to 1 << 128 - 1 files. Since each file has a
+	// header which will be _at least_ 30 bytes we can safely preallocate
+	// if (data size / 30) >= end.directoryRecords.
+	if end.directorySize < uint64(size) && (uint64(size)-end.directorySize)/30 >= end.directoryRecords {
+		z.File = make([]*File, 0, end.directoryRecords)
+	}
 	z.Comment = end.comment
 	rs := io.NewSectionReader(r, 0, size)
 	if _, err = rs.Seek(int64(end.directoryOffset), io.SeekStart); err != nil {
@@ -684,6 +692,9 @@ func (r *Reader) initFileList() {
 		for _, file := range r.File {
 			isDir := len(file.Name) > 0 && file.Name[len(file.Name)-1] == '/'
 			name := toValidName(file.Name)
+			if name == "" {
+				continue
+			}
 			for dir := path.Dir(name); dir != "."; dir = path.Dir(dir) {
 				dirs[dir] = true
 			}
@@ -725,8 +736,11 @@ func fileEntryLess(x, y string) bool {
 func (r *Reader) Open(name string) (fs.File, error) {
 	r.initFileList()
 
+	if !fs.ValidPath(name) {
+		return nil, &fs.PathError{Op: "open", Path: name, Err: fs.ErrInvalid}
+	}
 	e := r.openLookup(name)
-	if e == nil || !fs.ValidPath(name) {
+	if e == nil {
 		return nil, &fs.PathError{Op: "open", Path: name, Err: fs.ErrNotExist}
 	}
 	if e.isDir {
@@ -740,7 +754,7 @@ func (r *Reader) Open(name string) (fs.File, error) {
 }
 
 func split(name string) (dir, elem string, isDir bool) {
-	if name[len(name)-1] == '/' {
+	if len(name) > 0 && name[len(name)-1] == '/' {
 		isDir = true
 		name = name[:len(name)-1]
 	}
