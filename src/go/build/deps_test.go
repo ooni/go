@@ -332,7 +332,7 @@ var depsRules = `
 
 	# Bulk of the standard library must not use cgo.
 	# The prohibition stops at net and os/user.
-	C !< fmt, go/types, CRYPTO-MATH;
+	C !< fmt, go/types;
 
 	CGO, OS
 	< plugin;
@@ -386,9 +386,11 @@ var depsRules = `
 	NET, log
 	< net/mail;
 
+	CGO, internal/cpu, sync < internal/cpuproxy;
+
 	# CRYPTO is core crypto algorithms - no cgo, fmt, net.
 	# Unfortunately, stuck with reflect via encoding/binary.
-	encoding/binary, golang.org/x/sys/cpu, hash
+	encoding/binary, golang.org/x/sys/cpu, hash, internal/cpuproxy
 	< crypto
 	< crypto/subtle
 	< crypto/internal/subtle
@@ -400,7 +402,7 @@ var depsRules = `
 	  crypto/sha1, crypto/sha256, crypto/sha512
 	< CRYPTO;
 
-	CGO, fmt, net !< CRYPTO;
+	fmt, net !< CRYPTO;
 
 	# CRYPTO-MATH is core bignum-based crypto - no cgo, net; fmt now ok.
 	CRYPTO, FMT, math/big
@@ -415,7 +417,7 @@ var depsRules = `
 	< crypto/ecdsa
 	< CRYPTO-MATH;
 
-	CGO, net !< CRYPTO-MATH;
+	net !< CRYPTO-MATH;
 
 	# TLS, Prince of Dependencies.
 	CRYPTO-MATH, NET, container/list, encoding/hex, encoding/pem
