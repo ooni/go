@@ -16,6 +16,7 @@ import (
 	"fmt"
 	"hash"
 	"internal/cpu"
+	"internal/cpuproxy"
 	"runtime"
 
 	"golang.org/x/crypto/chacha20poly1305"
@@ -356,7 +357,7 @@ var defaultCipherSuitesTLS13NoAES = []uint16{
 
 var (
 	hasGCMAsmAMD64 = cpu.X86.HasAES && cpu.X86.HasPCLMULQDQ
-	hasGCMAsmARM64 = cpu.ARM64.HasAES && cpu.ARM64.HasPMULL
+	hasGCMAsmARM64 = cpuproxy.HasAES() && cpuproxy.HasGFMUL()
 	// Keep in sync with crypto/aes/cipher_s390x.go.
 	hasGCMAsmS390X = cpu.S390X.HasAES && cpu.S390X.HasAESCBC && cpu.S390X.HasAESCTR &&
 		(cpu.S390X.HasGHASH || cpu.S390X.HasAESGCM)
